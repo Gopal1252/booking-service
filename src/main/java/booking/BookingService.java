@@ -6,6 +6,7 @@ import booking.BookingResult.Rejected;
 
 import java.time.Instant;
 import java.time.format.DateTimeParseException;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -62,6 +63,31 @@ public class BookingService {
                 new Appointment(UUID.randomUUID().toString(), providerId, from, to, Status.ACTIVE);
         store.save(appointment);
         return new Booked(appointment);
+    }
+
+    /**
+     * Cancels an appointment, which frees its time slot. The record is kept with status CANCELLED.
+     * Any result other than CANCELLED leaves the store unchanged.
+     */
+    public CancelResult cancel(String appointmentId) {
+        if (isBlank(appointmentId)) {
+            return CancelResult.INVALID_INPUT;
+        }
+        Optional<Appointment> found = store.findById(appointmentId);
+        if (found.isEmpty()) {
+            return CancelResult.NOT_FOUND;
+        }
+        Appointment appointment = found.get();
+        if (appointment.status() == Status.CANCELLED) {
+            return CancelResult.ALREADY_CANCELLED;
+        }
+        store.save(appointment.cancel());
+        return CancelResult.CANCELLED;
+    }
+
+    /** All appointments for the provider, ACTIVE and CANCELLED. Read-only helper for the REPL and debugging. */
+    public List<Appointment> listForProvider(String providerId) {
+        return store.findByProvider(providerId);
     }
 
     /** Half-open overlap: [a.start, a.end) and [start, end) overlap iff a.start < end && start < a.end. */

@@ -8,6 +8,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.NullAndEmptySource;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import java.time.Instant;
 import java.util.List;
@@ -82,6 +84,50 @@ class BookingServiceTest {
 
         assertInstanceOf(Booked.class, first);
         assertInstanceOf(Booked.class, second);
+    }
+
+    // T5 (AC4)
+    @Test
+    void cancelledAppointmentFreesItsSlotForRebooking() {
+        Appointment original = bookOrFail("dr-smith", T10, T11);
+
+        assertEquals(CancelResult.CANCELLED, service.cancel(original.id()));
+        BookingResult rebooked = service.book("dr-smith", T10, T11);
+
+        Appointment replacement = assertInstanceOf(Booked.class, rebooked).appointment();
+        assertEquals(Status.CANCELLED, store.findById(original.id()).orElseThrow().status());
+        assertEquals(Status.ACTIVE, replacement.status());
+        assertEquals(List.of(original.cancel(), replacement), service.listForProvider("dr-smith"));
+    }
+
+    // T6 (AC4)
+    @Test
+    void cancellingMissingIdReturnsNotFound() {
+        Appointment existing = bookOrFail("dr-smith", T10, T11);
+
+        assertEquals(CancelResult.NOT_FOUND, service.cancel(UUID.randomUUID().toString()));
+        assertEquals(List.of(existing), store.findByProvider("dr-smith"));
+    }
+
+    // T6 (AC4)
+    @Test
+    void cancellingTwiceReturnsAlreadyCancelled() {
+        Appointment existing = bookOrFail("dr-smith", T10, T11);
+        service.cancel(existing.id());
+
+        assertEquals(CancelResult.ALREADY_CANCELLED, service.cancel(existing.id()));
+        assertEquals(List.of(existing.cancel()), store.findByProvider("dr-smith"));
+    }
+
+    // AC5: a missing identifier on cancel is rejected without touching the store
+    @ParameterizedTest(name = "appointmentId=\"{0}\"")
+    @NullAndEmptySource
+    @ValueSource(strings = {"   "})
+    void cancellingWithBlankIdReturnsInvalidInput(String appointmentId) {
+        Appointment existing = bookOrFail("dr-smith", T10, T11);
+
+        assertEquals(CancelResult.INVALID_INPUT, service.cancel(appointmentId));
+        assertEquals(List.of(existing), store.findByProvider("dr-smith"));
     }
 
     // T7 (AC5)

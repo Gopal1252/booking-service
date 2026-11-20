@@ -472,3 +472,53 @@ Legend: **Accepted** = used as given, **Edited** = used with changes, **Rejected
 **Verification:** Checked the equivalence by hand. `!(a.start < b.end)` is `b.end <= a.start`, and `!(b.start < a.end)` is `a.end <= b.start`. This form also allows adjacency: if `a.end == b.start`, then `a.end <= b.start` is true, so there is no overlap.
 
 **Related, from the user's review of `BookingService` (Entry 19):** the user read the code and found the validation and overlap check fine. The user added two comments by hand in `BookingService.book`: `//negative time period` on the `end <= start` check, and `//this returns a conflicted appointment` above the overlap stream.
+
+---
+
+### Entry 21: P3 Cancellation (`BookingService.cancel`, `listForProvider`)
+
+**Prompt:**
+> next, P3 - cancel api
+
+**Response summary:**
+- `cancel(appointmentId)` follows DESIGN §10.2 in order:
+  1. Blank/null id → `INVALID_INPUT`.
+  2. Not in the store → `NOT_FOUND`.
+  3. Status already CANCELLED → `ALREADY_CANCELLED`.
+  4. `store.save(appointment.cancel())`, which replaces the record under the same id (Entries 17/18).
+  5. Return `CANCELLED`.
+  - Only the CANCELLED path writes to the store.
+- `listForProvider(providerId)`: a read-only pass-through to `store.findByProvider`, returning ACTIVE and CANCELLED appointments in booking order. It is for the REPL and debugging (DESIGN §10, Entry 8).
+- New tests in `BookingServiceTest`:
+  - T5 `cancelledAppointmentFreesItsSlotForRebooking`: book, cancel → `CANCELLED`, then rebook the same slot → `Booked`. The original is stored as CANCELLED, the replacement is ACTIVE, and `listForProvider` shows both in order.
+  - T6 `cancellingMissingIdReturnsNotFound`: a random UUID → `NOT_FOUND`, and the store is unchanged.
+  - T6 `cancellingTwiceReturnsAlreadyCancelled`: the second cancel → `ALREADY_CANCELLED`, and the store still holds one CANCELLED record.
+  - `cancellingWithBlankIdReturnsInvalidInput` (AC5, missing identifier): null, empty and whitespace → `INVALID_INPUT`, and the store is unchanged. This is not a numbered test in DESIGN §13. It was added because AC5 covers missing identifiers, and `INVALID_INPUT` was added to `CancelResult` for exactly this case (Entry 9).
+- Kept the id in `byProvider` on cancel, and the overlap check filters on `status == ACTIVE`. This settles the open decision in DESIGN §9 on the "current choice", in line with the user's "one source of truth" principle (Entries 6/7). The DESIGN §9 text is not yet updated to say it's settled.
+
+**Decision:** _(user to fill: accepted / edited / rejected)_
+
+**Verification:**
+- `mvn clean test` → `BookingServiceTest` 19 run, `InMemoryAppointmentStoreTest` 5 run. In total, `Tests run: 24, Failures: 0, Errors: 0, Skipped: 0`, `BUILD SUCCESS` (P3 gate: full suite green).
+- Mutation checks, run on throwaway copies in the scratchpad (not the repo):
+  - Removed the ACTIVE filter from the overlap check → 1 failure, `cancelledAppointmentFreesItsSlotForRebooking` (T5).
+  - Removed the ALREADY_CANCELLED check → 1 failure, `cancellingTwiceReturnsAlreadyCancelled` (T6).
+- User review: _(pending)_
+
+---
+
+### Entry 22: Clarify `previous == null` and `computeIfAbsent` in `InMemoryAppointmentStore.save`
+
+**Prompt:**
+> one doubt here, associated with the save method of the InMemoryAppointmentStore. if (previous == null) {
+>             byProvider.computeIfAbsent(appointment.providerId(), p -> new ArrayList<>()).add(appointment.id());
+>         }
+
+**Response summary:**
+- `byId.put` returns the previous record for that id, or `null` if there wasn't one. `null` means this is a first save (`book`); a value means a replace (`cancel`).
+- The id is added to `byProvider` only on the first save. On cancel, the id is already indexed, and adding it again would make `findByProvider` return the appointment twice. This is covered by `savingSameIdReplacesRecordWithoutDuplicatingIndex`.
+- `computeIfAbsent(providerId, p -> new ArrayList<>())` returns the provider's id list and creates an empty one on the provider's first booking. `.add(id)` appends to it. The longhand `get` / `null` check / `put` equivalent was shown.
+- A walkthrough table (book A1, book A2, cancel A1) showed `byId` and `byProvider` after each call.
+- Restated the assumption: a re-save never changes `providerId` (`cancel()` keeps every field but status).
+
+**Decision:** Accepted (explanation only, no code change)
