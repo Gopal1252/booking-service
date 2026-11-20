@@ -1,0 +1,342 @@
+# AI Prompt and Use Record
+
+Project: Appointment B, conflict-safe booking and cancellation
+Tools: claude.ai (design phase), Claude Code in IntelliJ (build phase)
+
+Legend: **Accepted** = used as given, **Edited** = used with changes, **Rejected** = not used.
+
+---
+
+## Phase 1: Design (claude.ai)
+
+### Entry 1: Problem context, requirements, deliverables
+
+**Prompt:**
+> I have to solve an AI Proficiency Engineering assessment wherein I need to make scheduling feature with the use of AI and keep it bounded to the suggested requirements. I have attached the assessment PDF along.
+> Firstly, provide me a context of the problem statement and then list the requirements and the deliverables as lists.
+> Note that there is no starter project in here, and it seems it has been mentioned in the document, how to handle that case.
+>
+> I plan to discuss the design and plan how to actually develop the feature with claude.ai here, but the actual code writing and development would be done with the help of claude code in intellij.
+>
+> Also, note that I will need the prompt and responses here to go into a file later as i think it is also a deliverable
+>
+> So, first give me the context of the problem statement and the requirements and deliverables list.
+
+**Response summary:**
+- Context: build only the booking and cancellation slice. Core invariant: no two active appointments for the same provider overlap, using half-open intervals `[start, end)`.
+- No starter project, so the PDF's fallback applies: a small service or CLI prototype with an in-memory store.
+- Requirements listed by category: functional (7 items), constraints (UTC, scope limits), testing (6 test categories, concurrency test optional but recommended), AI usage record.
+- Deliverables listed: code and tests, design spec, AI prompt record, setup/run instructions, assumptions and invariant note, limitations and risks.
+- Suggested keeping a running prompt log, and asked which stack to use next.
+
+**Decision:** Accepted
+
+**Informed:** Scope of the project, requirement checklist, deliverables checklist.
+
+**Verification:** Checked the requirements and deliverables lists against the assessment PDF myself. Nothing was missing or added.
+
+---
+
+### Entry 2: Tech stack selection and prompt log setup
+
+**Prompt:**
+> Okay, I accept this response (though I probably won't be rejecting the responses in the design phase)
+>
+> Can you generate a markdown file with appropriate name to append the
+> 1) prompt, 2) a summary of response, 3) [accepted/edited/rejected] flags.
+> Make an entry for previous prompt response and after every response in the future?
+> Since this is design phase, select accepted for the current responses, once we shift to the build phase in claude code, i can add the verification proof/reasoning there.
+>
+> As for the response - requirements seem correct and none seem to be missing, same with the deliverables
+>
+> My suggestions:
+> 1) Use plain Java - since the feature is bounded and simple and Spring Boot would require unnecessary.
+> 2) Tests - JUnit tests are fine. Also provide a list of the tests that have been mentioned in the docs, i believe there are not many.
+> 3) We can use CLI for using the feature we build. Let's keep it simple
+> 4) I think I would like to use Intellij as the IDE and maven to build the project - just keeping it simple
+>
+> these are my tech stack selection, can you tell me how do you like them?
+> After this we can move to the actual designing.
+
+**Response summary:**
+- Created this log file (`AI_PROMPT_LOG.md`).
+- Agreed with the stack: plain Java, JUnit 5, CLI, Maven, IntelliJ. Suggested Java 21 (or 17) for records and `java.time`.
+- Raised one issue: with an in-memory store, a one-command-per-run CLI loses state between runs. The CLI should be an interactive loop (REPL) so state lives for the session.
+- Suggested keeping the CLI as a thin layer over a service class, so tests target the service directly.
+- Listed the tests implied by the PDF, grouped by category, plus an optional concurrency test.
+
+**Decision:** Edited
+
+**Edits made (see Entry 3):**
+- Test list cut from 16 detailed cases to one core test per PDF category. The extra edge cases and the concurrency test become stretch goals, done only if time allows.
+- Accepted the CLI REPL idea, but deferred the class names and layering (`Main` / `BookingService` / `AppointmentStore`) to the design discussion instead of fixing them now.
+
+**Informed:** Tech stack, CLI shape (REPL), test scope.
+
+**Verification:** Checked the test list against acceptance criteria 1 to 6 in the PDF.
+
+---
+
+### Entry 3: Trim test scope, defer class design
+
+**Prompt:**
+> just one edit (update edited in the logs file as well)
+> 1) the number of tests you have listed is way too much. as per dock there are 5 major ones: successful booking, same-provider overlap, adjacency, different providers,
+> cancellation, and invalid input. so let's first majorly check the basic categories, we can surely go for all the tests if we get time.
+> 2) Got the CLI REPL loop. But I haven't decided the names or the exact design of the classes, we will do that next.
+> sounds good?
+
+**Response summary:**
+- Agreed. Marked Entry 2 as Edited.
+- Noted that the PDF actually lists 6 categories (the user's list also has 6 items).
+- Proposed a core test set: one test per category, with cancellation getting a second test because criterion 4 has two parts (freeing the slot, and a clear result for missing or already-cancelled bookings).
+- Extra edge cases and the concurrency test are now stretch goals.
+- Left the class design for the next step.
+
+**Decision:** Accepted
+
+**Informed:** Core test plan.
+
+**Verification:** Checked the core set against acceptance criteria 1 to 6 in the PDF.
+
+---
+
+### Entry 4: Proposed design
+
+**Prompt:**
+> yes, typo on the count.
+> next, design
+> The problem statement as explained by you is simple.
+> Can you suggest the design we should be following here? I will review it and ask any clarifying questions if needed
+
+**Response summary:**
+- Layers: `Main` (CLI REPL) -> `BookingService` (validation, locking, overlap check) -> `InMemoryAppointmentStore` (map by id).
+- Model: `Appointment` record (id, providerId, start, end, status), `Status` enum ACTIVE/CANCELLED. Cancel keeps the record and flips status instead of deleting it.
+- API: `book(providerId, start, end)` takes raw strings so the service owns all validation and is testable. Returns sealed `BookingResult` (Booked / Rejected with reason). `cancel(id)` returns `CancelResult` enum (CANCELLED / NOT_FOUND / ALREADY_CANCELLED). No exceptions for business outcomes.
+- Invariant: for one provider, no two ACTIVE appointments satisfy `a.start < b.end && b.start < a.end` (half-open `[start, end)`, so adjacency is allowed).
+- Validation runs fully before any store write, so rejected input never changes state.
+- Concurrency: one lock around check-then-insert in `book` and around `cancel`. Per-provider locks offered as an optional upgrade.
+- Assumptions: UTC ISO-8601 with `Z`, past bookings allowed, no max duration, server-generated UUID ids.
+- Open decisions for the user: start+end vs start+duration input, strict `Z` vs accepting offsets, lock granularity.
+
+**Decision:** Edited
+
+**Edits made (see Entry 5):**
+- Asked for an explicit class list, since the response described layers but not every class.
+- Found a gap: the store had only `Map<id, Appointment>`, with no provider-to-appointments lookup.
+- Questioned "flip the status" on a record, since record fields are final. The cancel mechanism was clarified to replace the record.
+- Concurrency (locking) deferred: build single-threaded first, add locking after.
+- Three open decisions taken as recommended: start + end input, strict `Z` UTC timestamps, single lock when concurrency is added.
+
+---
+
+### Entry 5: Class list, provider index, record immutability, defer concurrency
+
+**Prompt:**
+> some points:
+> 1) you didn't give me the exact list of entities/classes i wanted
+> from what i understand these are the classes:
+>
+> * BookingService (orchestrate from here)
+> * InMemoryAppointmentStore
+> * Appointment
+> * BookingResult (a sealed interface)
+> * Status (enum)
+> * CancelResult (enum)
+> * Main for demo/REPL
+>
+> 2) InMemoryAppointmentStore stores the Map<id,Appointment> but where do i store another Map to map out the providerId to the datastructure containing hte Appointments
+> 3) You said that Appointment is a record, and we can cancel an appointment by setting the enum sttus to cancelled, but isn't the enum immutable in the record?
+> 4) Regarding the concurrency - let's first build for single threaded environment, after that we take care of the concurrency
+> Make sure to update the AI logs
+
+**Response summary:**
+- Confirmed the user's class list and added the missing pieces: `Booked` and `Rejected` records (the two `BookingResult` cases), a `Reason` enum, and a `BookingServiceTest` test class.
+- Provider index: the store holds both maps. `byId: Map<String, Appointment>` is the single source of truth. `byProvider: Map<String, List<String>>` holds appointment ids only, so a replaced record never goes stale in the index.
+- Record immutability: the user was right, record fields are final. Cancel builds a new record with status CANCELLED (`appointment.cancel()`) and saves it under the same id, replacing the old one. The earlier "flip the status" wording was imprecise.
+- Concurrency deferred. Kept the check-and-save inside one service method so a lock can wrap it later without a redesign.
+
+**Decision:** Accepted
+
+**Informed:** Final class list, store data structure, cancel mechanism, build order (single-threaded first).
+
+**Verification:** Checked the record point against Java semantics (record components are implicitly `private final`, with no setters).
+
+---
+
+### Entry 6: Should cancel remove the id from byProvider?
+
+**Prompt:**
+> if an appointment is cancelled, do we not remove it from the byProvider map?
+
+**Response summary:**
+- Both approaches are valid. Recommended keeping the id in `byProvider` and filtering by `status == ACTIVE` during the overlap check.
+- Reasons: one source of truth for "is it active" (the status field), cancel stays a single write (replace in `byId`), and `list` can still show cancelled appointments.
+- Removing the id is a valid optimization (a smaller scan), but it means two writes per cancel and two places that encode "active", which can drift apart. If chosen, the map should be renamed `activeByProvider`.
+- `ALREADY_CANCELLED` detection works either way, because it reads `byId`.
+
+**Decision:** Accepted (the principle). Accepted "one source of truth" as the guiding rule. The final choice of keeping vs removing the id from `byProvider` is deferred to the build phase.
+
+---
+
+### Entry 7: Class relationships
+
+**Prompt:**
+> okay, got it, having one source of truth is better (need to remember this). I am not sure about the removing it from the byProvider map or not , i can probably discuss it during the actual building.
+> do remember to update the ai logs.
+>
+> um, i think we are done with most of the things, isn't it. um, can you give me the relationships also between the entities/classes identified and i think after that i will have you build the design doc to give to claude code and then i can continue there.
+
+**Response summary:**
+- Gave a class relationship diagram plus a relationship table.
+- `Main` uses `BookingService`. `BookingService` owns an `InMemoryAppointmentStore` (passed in through the constructor so tests can create fresh ones).
+- The store holds many `Appointment`s, and each `Appointment` has one `Status`.
+- `BookingService` creates `Appointment`s and returns `BookingResult` / `CancelResult`. `Booked` and `Rejected` implement `BookingResult`; `Booked` wraps an `Appointment`, and `Rejected` has a `Reason`.
+- Dependency rule: dependencies point downward only. The store knows nothing about results or validation, and the model knows nothing about the service.
+- Confirmed design is essentially complete. Next step is the design doc for Claude Code.
+
+**Decision:** Accepted
+
+**Informed:** Class relationships and dependency direction for the design doc.
+
+---
+
+### Entry 8: Confirm public service API
+
+**Prompt:**
+> and we are just exposing two main service APIs - > book and cancel  and just one more to list the appointments by the providerId for debugging purposes, am i right? respond in short
+
+**Response summary:**
+- Confirmed: `book(providerId, start, end)` and `cancel(appointmentId)` are the feature API. `listForProvider(providerId)` is a read-only helper for the REPL and debugging, outside the required scope.
+
+**Decision:** Accepted
+
+**Informed:** Public API surface of `BookingService`.
+
+---
+
+### Entry 9: Design doc
+
+**Prompt:**
+> i don't see entry 8.
+> Okay, good with the confirmation. Can you give me a design doc - markdown preferrable to give to claude code, but for my own reference also, so keep it nice and referrable/readable. I also want you to provide the context and purpose of this feature i.e. for the ai assessment.
+
+**Response summary:**
+- Entry 8 was written but the log file wasn't resent. Resent it.
+- Created `DESIGN.md`, which covers: context and purpose (the assessment), scope, acceptance criteria, booking invariant, assumptions, architecture, classes and relationships, store data design, service API and flows, CLI, concurrency plan (Phase 2), test plan (core + stretch), project layout, build order, instructions for Claude Code, and known limitations.
+- Two additions not discussed before:
+  1. Added `INVALID_INPUT` to `CancelResult`, because AC5 requires rejecting missing identifiers and cancel had no way to say so.
+  2. Flagged that `Instant.parse` accepts offsets since JDK 12, so strict UTC needs an explicit `Z` check, with a test to verify it.
+
+**Decision:** Accepted
+
+**Informed:** `DESIGN.md` (handed to Claude Code for the build). The user reviewed it and accepted it as written, including both additions.
+
+---
+
+### Entry 10: Split the build into phases
+
+**Prompt:**
+> okay. one more thing. instead of building in one go, i was thinking of dividing the feature development into a few phases. can you suggest some? don't update the design doc with the phases untill i tell you to
+
+**Response summary:**
+- Proposed 7 phases, each with a goal, the work involved, and a "done when" gate:
+  - P0 project skeleton
+  - P1 domain model + store
+  - P2 booking + validation (T1 to T4, T7)
+  - P3 cancellation (T5, T6)
+  - P4 CLI REPL + a saved demo transcript
+  - P5 concurrency (lock + concurrency test, plus proving the test fails without the lock)
+  - P6 stretch tests + docs (README, limitations, final log)
+- Suggested one Claude Code session, one log entry and one git commit per phase, so each phase leaves its own verification evidence.
+- `DESIGN.md` not changed, as instructed.
+
+**Decision:** Edited
+
+**Edits made (see Entry 11):**
+- P0 (the skeleton) is done by the user by hand in IntelliJ, not by Claude Code.
+- Dropped the "one git commit per phase" rule. The user commits at whatever granularity he chooses.
+
+---
+
+### Entry 11: Adjust phases for manual project init and own commits
+
+**Prompt:**
+> okay. i think i will initialize the project in intellij myself, so adjust the plan accordingly. I also plan to make step by step any git commits i like
+
+**Response summary:**
+- P0 becomes a manual step: create a Maven project in IntelliJ (JDK 21), add the `junit-jupiter` dependency and a Surefire 3.x plugin, and confirm `mvn test` runs. The `exec-maven-plugin` (for the REPL) can wait until P4.
+- Claude Code starts at P1. Phases P1 to P6 are unchanged apart from that.
+- Git: the user commits at his own granularity. Only suggestion: commit before each Claude Code session, so a diff shows exactly what the AI changed.
+
+**Decision:** Accepted
+
+**Informed:** Final phase plan (not yet written into DESIGN.md).
+
+---
+
+### Entry 12: Restate final phases
+
+**Prompt:**
+> give me the finalised phases once more?
+
+**Response summary:** Restated the final plan P0 to P6. P0 is manual in IntelliJ; Claude Code handles P1 to P6. Each phase has a "done when" gate.
+
+**Decision:** Accepted
+
+---
+
+### Entry 13: Add phases to the design doc
+
+**Prompt:**
+> okay, add these to the design doc, and then i will continue with claude code
+
+**Response summary:** Replaced Section 15 of `DESIGN.md` (Build Order) with "Build Phases", a P0 to P6 table giving owner, work and "done when" for each phase, plus the per-phase rules (commit before each session, one log entry per phase). Updated the Claude Code rules in Section 16 so it works one phase at a time and stops for review.
+
+**Decision:** Accepted
+
+**Informed:** `DESIGN.md` Sections 15 and 16. End of design phase; the build continues in Claude Code.
+
+---
+
+### Entry 14: P0 becomes shared between user and Claude Code
+
+**Prompt:**
+> wait, adjustment on the P0 - i just want to create an empty repo, can you do the rest. so it would be a mix of me and claude code. make the changes and then i start
+
+**Response summary:** Updated the P0 row in `DESIGN.md`. The user creates an empty repo and opens it in IntelliJ. Claude Code generates `pom.xml` (JDK 21, JUnit 5, Surefire 3.x), the package folders, `.gitignore`, and a trivial test. Done when `mvn test` passes and the user has reviewed `pom.xml`.
+
+**Decision:** Accepted
+
+**Informed:** `DESIGN.md` Section 15, P0 row.
+
+---
+
+## Phase 2: Build (Claude Code in IntelliJ)
+
+<!-- For each phase, add: prompt, response summary, decision (accepted/edited/rejected), verification (test output, diff review, manual checks). -->
+
+### Entry 15: P0 Skeleton
+
+**Prompt:**
+> okay. so do make sure to keep logging in the ai_prompt_log markdown file. also, i have added the original problem statement pdf in case we need it in future. other than that, we are good to go. P0 is in progress - the boilerplate, i have only initialized an empty repo in intellij using the new project option and group id as com.gopal and the artifactId as booking-service by defaults, change them back to more generic ones as per the plan. add the plugin requirement in pom.xml as required, update the .gitignore etc and whatever you suggested. i will make commits as per my preferences, since these are not required by the assessment, and just for my reference. i will make my first commit after p0 is done btw. also, changes are approved by me
+
+(Before this, Claude Code was asked to read `DESIGN.md` and this log and summarise its understanding without changing anything. It summarised the design and listed the P0 gaps: bare `pom.xml`, no `booking` package, `.gitignore` not ignoring `.idea/`, `.idea` files staged, and two doc mismatches.)
+
+**Response summary:**
+- `pom.xml`: coordinates changed from `com.gopal:booking-service` to `booking:appointment-booking`, matching the `booking` package and the project name in DESIGN §14. Switched `maven.compiler.source/target` to `maven.compiler.release` 21. Added `junit-jupiter` 5.11.4 (test scope), `maven-compiler-plugin` 3.13.0 and `maven-surefire-plugin` 3.5.2. `exec-maven-plugin` left for P4, as planned.
+- `.gitignore`: replaced the IntelliJ template with a short list: `target/`, `.idea/`, `*.iml`/`*.iws`/`*.ipr`, `.vscode/`, `.DS_Store`.
+- Untracked the already-staged `.idea/` files with `git rm -r --cached .idea` (the files stay on disk).
+- Created `src/main/java/booking/` (with a `.gitkeep` so git tracks it until P1) and `src/test/java/booking/SmokeTest.java`, one trivial test. Removed the empty `src/main/resources/` and `.mvn/` folders.
+- `DESIGN.md`: §1 now says the design is logged in entries 1 to 14 (it said 1 to 8). The root of the §14 layout tree is now `booking-service/`, the real repo name, with a note giving the Maven coordinates.
+- The problem statement PDF wasn't found in the repo folder when this ran.
+
+**Decision:** Accepted
+
+**Verification:**
+- `mvn test` → `Tests run: 1, Failures: 0, Errors: 0, Skipped: 0`, `BUILD SUCCESS` (JDK 21.0.9, Maven 3.9.14).
+- User reviewed the changes to `.gitignore`, `pom.xml`, the `.md` files and the added `SmokeTest`, and accepted them.
+- At the user's request, re-ran from a clean build: `mvn clean test` → `Running booking.SmokeTest`, `Tests run: 1, Failures: 0, Errors: 0, Skipped: 0`, `BUILD SUCCESS`.
+- From here the user runs Claude Code in manual mode and approves each change before it's applied.
+
+**P0 gate:** met. `mvn test` passes and the user has reviewed `pom.xml`.
