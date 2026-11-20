@@ -414,3 +414,61 @@ Legend: **Accepted** = used as given, **Edited** = used with changes, **Rejected
 > okay, so the provider ids are provided in the requests themselves, and the system doesn;t generate them so we don't need to care about them, got it. also good with the saving question. um, did you run the tests?
 
 **Verification:** Re-ran `mvn clean test` → `Tests run: 5, Failures: 0, Errors: 0, Skipped: 0`, `BUILD SUCCESS`.
+
+---
+
+### Entry 19: P2 Booking (`BookingService.book`)
+
+**Prompt:**
+> next - P2 - the BookingService.book service API - right?
+
+**Response summary:**
+- `BookingService(InMemoryAppointmentStore store)`, with the store passed in through the constructor (DESIGN §8/§10).
+- `book(providerId, start, end)` follows DESIGN §10.1 in order:
+  1. Validate, with no store access: blank/null provider → `providerId is required`. Blank/null start or end → `start and end are required`. No `Z` suffix or unparseable → `timestamps must be ISO-8601 UTC, e.g. 2026-11-20T10:00:00Z`. `end <= start` → `end must be after start`. Each returns `Rejected(INVALID_INPUT, …)`.
+  2. Overlap check: the provider's ACTIVE appointments where `existing.start < end && start < existing.end`. The first match → `Rejected(CONFLICT, "overlaps appointment <id>")`.
+  3. Create `Appointment(UUID.randomUUID(), …, ACTIVE)`, then 4. `store.save`, then 5. return `Booked`.
+  - Steps 2 to 4 sit together in one method, ready for the P5 lock.
+- `cancel` and `listForProvider` are not added (P3).
+- `BookingServiceTest` (fresh store + service per test, fixed timestamps):
+  - T1 valid booking → `Booked`. The id is a valid UUID, the fields match, and it is stored as ACTIVE.
+  - T2 same-provider overlap → `Rejected(CONFLICT)` with the conflicting id, and the store is unchanged.
+  - T3 starts exactly when another ends → `Booked`.
+  - T4 same interval for two providers → both `Booked`.
+  - T7, a parameterized test with 9 cases: null provider, blank provider, null start, blank end, unparseable timestamp, date with no time part, `+05:30` offset, zero duration, negative duration. Each case asserts `INVALID_INPUT`, the exact message, and that the store is unchanged.
+- Small scope pull-forward: the `+05:30`, zero-duration and negative-duration cases are listed as stretch tests in DESIGN §13. They went into T7 here because the P2 gate requires checking the `Z` check, and they add only rows, not new tests. The other stretch cases (partial/contained/identical overlap, reverse adjacency) stay in P6.
+- Not trimmed: `providerId` is stored as given, so `" dr-smith"` and `"dr-smith"` are different providers. DESIGN §6 only requires non-blank. Flagged for review.
+
+**Decision:** Accepted
+
+**Verification:**
+- `mvn clean test` → `BookingServiceTest` 13 run (4 + 9 parameterized), `InMemoryAppointmentStoreTest` 5 run. In total, `Tests run: 18, Failures: 0, Errors: 0, Skipped: 0`, `BUILD SUCCESS`.
+- JDK behaviour check (DESIGN §10.1 note): in jshell on JDK 21, `Instant.parse("2026-11-20T16:30:00+05:30")` returns `2026-11-20T11:00:00Z`, so offsets are accepted and the explicit `Z` check is needed.
+- Mutation checks, run on throwaway copies in the scratchpad (not the repo):
+  - Disabled the `Z` check → 1 failure, T7 case [7] "offset instead of Z".
+  - Changed the overlap to inclusive (`existing.end >= start`) → 1 failure, `bookingThatStartsWhenAnotherEndsIsAllowed` (T3).
+  - So the tests catch the two most likely invariant bugs.
+- User check of the overlap condition and the `Z` check (P2 gate): done. The user reviewed `BookingService` ("we will reject any invalid time frames, formats, etc and overalp check being done"), added two comments by hand (Entry 20), and then reviewed `BookingServiceTest` ("went through the tests, seem okay").
+- Re-ran `mvn clean test` after the user's comment edits: `Tests run: 18, Failures: 0, Errors: 0, Skipped: 0`, `BUILD SUCCESS`.
+
+**P2 gate:** met. The tests are green, and the user has checked the overlap condition and the `Z` check.
+
+---
+
+### Entry 20: Add the "no overlap" form to DESIGN §5
+
+**Prompt:**
+> okay, i have checked the BookingService code, seems fine, we will reject any invalid time frames, formats, etc and overalp check being done. Before checking the test cases, one change in the design doc, just for my reference - for overlap, currently, we are checking: a.start < b.end  &&  b.start < a.end, right? which is fine and i understand this. another logic we can use (when they don't overlap i mean): a.end<=b.start || b.end<=a.start. i would just like you to mention it in the design doc, just more intrinsic understanding for me. let me check the tests
+
+**Response summary:**
+- Confirmed: the code checks `a.start < b.end && b.start < a.end`.
+- Added the user's "no overlap" form `a.end <= b.start || b.end <= a.start` to DESIGN §5. It is shown as the exact negation of the overlap condition (De Morgan), with a small ASCII sketch of the two "no overlap" cases and the overlap case. It is noted as an alternative; the code keeps the overlap form.
+- Code is unchanged.
+
+**Decision:** Accepted
+
+**Informed:** DESIGN §5, reference only.
+
+**Verification:** Checked the equivalence by hand. `!(a.start < b.end)` is `b.end <= a.start`, and `!(b.start < a.end)` is `a.end <= b.start`. This form also allows adjacency: if `a.end == b.start`, then `a.end <= b.start` is true, so there is no overlap.
+
+**Related, from the user's review of `BookingService` (Entry 19):** the user read the code and found the validation and overlap check fine. The user added two comments by hand in `BookingService.book`: `//negative time period` on the `end <= start` check, and `//this returns a conflicted appointment` above the overlap stream.

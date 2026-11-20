@@ -74,6 +74,23 @@ Intervals are **half-open**: `[start, end)`. Two intervals `a` and `b` overlap e
 a.start < b.end  &&  b.start < a.end
 ```
 
+**The same rule, stated as "no overlap".** Two intervals do *not* overlap when one ends at or before the moment the other starts:
+
+```
+a.end <= b.start  ||  b.end <= a.start
+```
+
+This is the exact negation of the overlap condition (De Morgan: `!(x && y) == !x || !y`, and `!(a.start < b.end)` is `b.end <= a.start`). The code uses the overlap form, but either one works. Visually:
+
+```
+no overlap:   a: [=====)              a ends at or before b starts
+                       b: [=====)
+no overlap:   b: [=====)              b ends at or before a starts
+                       a: [=====)
+overlap:      a: [=======)            neither of the above is true
+                   b: [=======)
+```
+
 - **Adjacency is allowed automatically.** If `a.end == b.start`, then `b.start < a.end` is false, so there is no overlap.
 - **Only ACTIVE appointments count.** CANCELLED appointments are ignored by the check.
 - **The invariant lives in `BookingService` only.** No other class enforces it.
