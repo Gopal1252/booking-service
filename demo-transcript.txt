@@ -1,0 +1,48 @@
+# REPL demo transcript (P4)
+# Generated 2026-11-20T09:23:18Z by driving `java -cp target/classes booking.Main` with a scripted driver
+# (Claude Code, scratchpad demo_driver.py). Same REPL as `mvn -q compile exec:java`. Ids are random per run.
+
+Appointment booking. Type 'help' for commands.
+> help
+Commands:
+  book <providerId> <start> <end>   book [start, end) for a provider; timestamps like 2026-11-20T10:00:00Z
+  cancel <appointmentId>            cancel an appointment, freeing its slot
+  list <providerId>                 show all of a provider's appointments, active and cancelled
+  help                              show this help
+  exit                              quit (Ctrl-D also works)
+> book dr-smith 2026-11-20T10:00:00Z 2026-11-20T11:00:00Z
+BOOKED  id=32d915e3-c656-4535-a5ac-022e9348342d  dr-smith  2026-11-20T10:00:00Z to 2026-11-20T11:00:00Z
+> book dr-smith 2026-11-20T10:30:00Z 2026-11-20T11:30:00Z
+REJECTED  CONFLICT: overlaps appointment 32d915e3-c656-4535-a5ac-022e9348342d
+> book dr-smith 2026-11-20T11:00:00Z 2026-11-20T12:00:00Z
+BOOKED  id=0a2b4340-a938-4f3c-94cc-8053e3a6a20b  dr-smith  2026-11-20T11:00:00Z to 2026-11-20T12:00:00Z
+> book dr-jones 2026-11-20T10:00:00Z 2026-11-20T11:00:00Z
+BOOKED  id=5a2f8ae5-17e4-4c84-969a-5d3f6a405f70  dr-jones  2026-11-20T10:00:00Z to 2026-11-20T11:00:00Z
+> book dr-smith 2026-11-20T13:00:00+05:30 2026-11-20T14:00:00Z
+REJECTED  INVALID_INPUT: timestamps must be ISO-8601 UTC, e.g. 2026-11-20T10:00:00Z
+> book dr-smith 2026-11-20T15:00:00Z 2026-11-20T15:00:00Z
+REJECTED  INVALID_INPUT: end must be after start
+> book dr-smith not-a-time 2026-11-20T15:00:00Z
+REJECTED  INVALID_INPUT: timestamps must be ISO-8601 UTC, e.g. 2026-11-20T10:00:00Z
+> cancel 32d915e3-c656-4535-a5ac-022e9348342d
+CANCELLED
+> book dr-smith 2026-11-20T10:30:00Z 2026-11-20T11:00:00Z
+BOOKED  id=98f22ea7-c767-479c-899c-7b7a8ba87384  dr-smith  2026-11-20T10:30:00Z to 2026-11-20T11:00:00Z
+> cancel 32d915e3-c656-4535-a5ac-022e9348342d
+ALREADY_CANCELLED
+> cancel 00000000-0000-0000-0000-000000000000
+NOT_FOUND
+> list dr-smith
+32d915e3-c656-4535-a5ac-022e9348342d  2026-11-20T10:00:00Z to 2026-11-20T11:00:00Z  CANCELLED
+0a2b4340-a938-4f3c-94cc-8053e3a6a20b  2026-11-20T11:00:00Z to 2026-11-20T12:00:00Z  ACTIVE
+98f22ea7-c767-479c-899c-7b7a8ba87384  2026-11-20T10:30:00Z to 2026-11-20T11:00:00Z  ACTIVE
+> list dr-jones
+5a2f8ae5-17e4-4c84-969a-5d3f6a405f70  2026-11-20T10:00:00Z to 2026-11-20T11:00:00Z  ACTIVE
+> list dr-nobody
+no appointments for dr-nobody
+> book dr-smith
+usage: book <providerId> <start> <end>
+> reschedule 0a2b4340-a938-4f3c-94cc-8053e3a6a20b
+unknown command 'reschedule'. Type 'help' for commands.
+> exit
+bye

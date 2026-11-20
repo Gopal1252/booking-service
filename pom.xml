@@ -36,7 +36,15 @@
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>3.5.2</version>
             </plugin>
-            <!-- exec-maven-plugin (to run the REPL) is added in P4 -->
+            <!-- Runs the REPL: mvn -q compile exec:java -->
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <version>3.5.0</version>
+                <configuration>
+                    <mainClass>booking.Main</mainClass>
+                </configuration>
+            </plugin>
         </plugins>
     </build>
 </project>

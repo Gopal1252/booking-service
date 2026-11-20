@@ -1,0 +1,29 @@
+Appointment booking. Type 'help' for commands.
+> book g1 2026-11-20T10:00:00Z 2026-11-20T11:00:00Z
+BOOKED  id=5bf6aa01-d191-4976-ac47-58fd317fc789  g1  2026-11-20T10:00:00Z to 2026-11-20T11:00:00Z
+> cancel 5bf6aa01-d191-4976-ac47-58fd317fc789
+CANCELLED
+>
+> >
+unknown command '>'. Type 'help' for commands.
+>
+> >
+unknown command '>'. Type 'help' for commands.
+> book g1 2026-11-20T10:00:00Z 2026-11-20T11:00:00Z
+BOOKED  id=7039ff46-1de5-403e-899a-656e47ea6d22  g1  2026-11-20T10:00:00Z to 2026-11-20T11:00:00Z
+> book g1 2026-11-20T10:00:00Z 2026-11-20T11:00:00Z
+REJECTED  CONFLICT: overlaps appointment 7039ff46-1de5-403e-899a-656e47ea6d22
+> book g2 2026-11-20T10:00:00Z 2026-11-20T11:00:00Z
+BOOKED  id=3c854bf6-fc3c-4fde-81d0-4f75ebb05389  g2  2026-11-20T10:00:00Z to 2026-11-20T11:00:00Z
+> cancel absc
+NOT_FOUND
+> cancel 5bf6aa01-d191-4976-ac47-58fd317fc789
+ALREADY_CANCELLED
+> cancel
+usage: cancel <appointmentId>
+> cancel
+usage: cancel <appointmentId>
+> quit
+unknown command 'quit'. Type 'help' for commands.
+> exit
+bye
