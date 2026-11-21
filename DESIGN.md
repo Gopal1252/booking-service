@@ -285,7 +285,7 @@ CANCELLED
 bye
 ```
 
-As built (P4), the output prints full ids, since `cancel` needs them, and full ISO timestamps, so the date is visible. See `demo-transcript.txt` (scripted) and `demo_transcript_manual.txt` (manual) for real sessions.
+As built (P4), the output prints full ids, since `cancel` needs them, and full ISO timestamps, so the date is visible. See `evidence/demo-transcript.txt` (scripted) and `evidence/demo_transcript_manual.txt` (manual) for real sessions.
 
 | Command | Action |
 |---|---|
@@ -387,8 +387,11 @@ booking-service/            repo root (Maven: groupId `booking`, artifactId `app
 ├── README.md              setup, run and test commands
 ├── DESIGN.md              this file
 ├── AI_PROMPT_LOG.md       prompts, decisions, verification
-├── demo-transcript.txt    scripted REPL demo (P4)
-├── demo_transcript_manual.txt   my own manual REPL demo (P4)
+├── GOPAL GUPTA_AI_Assessment.pdf   the assessment problem statement
+├── evidence/
+│   ├── demo-transcript.txt              scripted REPL demo (P4)
+│   ├── demo_transcript_manual.txt       my own manual REPL demo (P4)
+│   └── concurrency-no-lock-failure.txt  concurrency tests failing with the lock removed (P5 gate)
 └── src/
     ├── main/java/booking/
     │   ├── Appointment.java

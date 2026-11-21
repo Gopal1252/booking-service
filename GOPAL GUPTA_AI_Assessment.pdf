@@ -1,0 +1,110 @@
+%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [ 5 0 R 7 0 R ] /Count 2 >>
+endobj
+3 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>
+endobj
+4 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>
+endobj
+5 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents 6 0 R >>
+endobj
+6 0 obj
+<< /Length 5083 >>
+stream
+BT 0.14 0.30 0.23 rg /F2 22 Tf 1 0 0 1 52 742 Tm (AI-Assisted Engineering Assessment: Appointment Booking) Tj ET
+BT 0.19 0.36 0.28 rg /F2 14 Tf 1 0 0 1 52 706 Tm (Objective) Tj ET
+BT 0.12 0.16 0.14 rg /F1 10 Tf 1 0 0 1 52 679 Tm (Complete one bounded scheduling feature with AI used as an engineering assistant.) Tj ET
+BT 0.12 0.16 0.14 rg /F1 10 Tf 1 0 0 1 52 665 Tm (Demonstrate clear task decomposition, thoughtful review of AI output, and independent) Tj ET
+BT 0.12 0.16 0.14 rg /F1 10 Tf 1 0 0 1 52 651 Tm (verification. This exercise is about building a reliable service slice, not a complete web) Tj ET
+BT 0.12 0.16 0.14 rg /F1 10 Tf 1 0 0 1 52 637 Tm (application.) Tj ET
+BT 0.19 0.36 0.28 rg /F2 14 Tf 1 0 0 1 52 616 Tm (Problem Statement) Tj ET
+BT 0.12 0.16 0.14 rg /F1 10 Tf 1 0 0 1 52 589 Tm (A scheduling service must prevent a provider from being booked for overlapping active) Tj ET
+BT 0.12 0.16 0.14 rg /F1 10 Tf 1 0 0 1 52 575 Tm (appointments. Implement conflict-safe booking and cancellation in the provided starter) Tj ET
+BT 0.12 0.16 0.14 rg /F1 10 Tf 1 0 0 1 52 561 Tm (project. If no starter project is supplied, implement a small service or command-line) Tj ET
+BT 0.12 0.16 0.14 rg /F1 10 Tf 1 0 0 1 52 547 Tm (prototype using an in-memory store; a frontend is not required.) Tj ET
+BT 0.12 0.16 0.14 rg /F1 10 Tf 1 0 0 1 52 526 Tm (Use UTC timestamps and state any additional assumptions. A cancelled appointment must no) Tj ET
+BT 0.12 0.16 0.14 rg /F1 10 Tf 1 0 0 1 52 512 Tm (longer block its time. When working in a starter project, keep its existing interface and) Tj ET
+BT 0.12 0.16 0.14 rg /F1 10 Tf 1 0 0 1 52 498 Tm (persistence approach.) Tj ET
+BT 0.19 0.36 0.28 rg /F2 14 Tf 1 0 0 1 52 477 Tm (Acceptance Criteria) Tj ET
+BT 0.12 0.16 0.14 rg /F1 10 Tf 1 0 0 1 52 450 Tm (1. A valid appointment can be booked for a provider and a positive-duration time interval.) Tj ET
+BT 0.12 0.16 0.14 rg /F1 10 Tf 1 0 0 1 52 436 Tm (2. A booking is rejected when it overlaps another active appointment for the same provider.) Tj ET
+BT 0.12 0.16 0.14 rg /F1 10 Tf 1 0 0 1 52 422 Tm (Appointments for different providers do not conflict.) Tj ET
+BT 0.12 0.16 0.14 rg /F1 10 Tf 1 0 0 1 52 408 Tm (3. Adjacent appointments are allowed when one ends at the exact time the next begins.) Tj ET
+BT 0.12 0.16 0.14 rg /F1 10 Tf 1 0 0 1 52 394 Tm (4. A cancelled appointment no longer prevents a new booking for that time. Cancelling a) Tj ET
+BT 0.12 0.16 0.14 rg /F1 10 Tf 1 0 0 1 52 380 Tm (missing or already-cancelled booking returns a clear result.) Tj ET
+BT 0.12 0.16 0.14 rg /F1 10 Tf 1 0 0 1 52 366 Tm (5. Invalid timestamps, non-positive durations, and missing identifiers are rejected without) Tj ET
+BT 0.12 0.16 0.14 rg /F1 10 Tf 1 0 0 1 52 352 Tm (changing stored bookings.) Tj ET
+BT 0.12 0.16 0.14 rg /F1 10 Tf 1 0 0 1 52 338 Tm (6. Tests cover successful booking, same-provider overlap, adjacency, different providers,) Tj ET
+BT 0.12 0.16 0.14 rg /F1 10 Tf 1 0 0 1 52 324 Tm (cancellation, and invalid input. If the starter uses concurrent requests, preserve its) Tj ET
+BT 0.12 0.16 0.14 rg /F1 10 Tf 1 0 0 1 52 310 Tm (transaction or locking pattern and add a focused concurrency test where practical.) Tj ET
+BT 0.12 0.16 0.14 rg /F1 10 Tf 1 0 0 1 52 296 Tm (7. Use AI for at least one engineering activity. Record the prompts used, relevant AI) Tj ET
+BT 0.12 0.16 0.14 rg /F1 10 Tf 1 0 0 1 52 282 Tm (response or summary, whether each suggestion was accepted, edited, or rejected, and how the) Tj ET
+BT 0.12 0.16 0.14 rg /F1 10 Tf 1 0 0 1 52 268 Tm (resulting work was verified.) Tj ET
+BT 0.19 0.36 0.28 rg /F2 14 Tf 1 0 0 1 52 247 Tm (Scope Boundaries) Tj ET
+BT 0.12 0.16 0.14 rg /F1 10 Tf 1 0 0 1 52 220 Tm (- Implement only the booking-conflict and cancellation slice; do not build the full) Tj ET
+BT 0.12 0.16 0.14 rg /F1 10 Tf 1 0 0 1 52 206 Tm (scheduling product.) Tj ET
+BT 0.12 0.16 0.14 rg /F1 10 Tf 1 0 0 1 52 192 Tm (- Do not add a frontend, authentication, notifications, recurring availability, calendar) Tj ET
+BT 0.12 0.16 0.14 rg /F1 10 Tf 1 0 0 1 52 178 Tm (integration, deployment, or a new database unless the starter project requires it.) Tj ET
+BT 0.12 0.16 0.14 rg /F1 10 Tf 1 0 0 1 52 164 Tm (- Do not implement separate greenfield, brownfield, and ambiguous scenarios. Work in the) Tj ET
+BT 0.12 0.16 0.14 rg /F1 10 Tf 1 0 0 1 52 150 Tm (supplied starter; otherwise use the minimal service or CLI fallback described above.) Tj ET
+BT 0.12 0.16 0.14 rg /F1 10 Tf 1 0 0 1 52 136 Tm (- Keep time-zone handling to UTC and document that assumption.) Tj ET
+BT 0.19 0.36 0.28 rg /F2 14 Tf 1 0 0 1 52 115 Tm (Deliverables) Tj ET
+BT 0.12 0.16 0.14 rg /F1 10 Tf 1 0 0 1 52 88 Tm (- Runnable code for the scoped feature and focused automated tests.) Tj ET
+BT 0.12 0.16 0.14 rg /F1 10 Tf 1 0 0 1 52 74 Tm (- A design specification document describing the proposed or implemented service boundary,) Tj ET
+BT 0.12 0.16 0.14 rg /F1 10 Tf 1 0 0 1 52 60 Tm (relevant data/API design, booking invariant, concurrency or persistence approach, and key) Tj ET
+endstream
+endobj
+7 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents 8 0 R >>
+endobj
+8 0 obj
+<< /Length 3003 >>
+stream
+BT 0.12 0.16 0.14 rg /F1 10 Tf 1 0 0 1 52 742 Tm (assumptions or tradeoffs. Keep it proportionate to this bounded feature.) Tj ET
+BT 0.12 0.16 0.14 rg /F1 10 Tf 1 0 0 1 52 728 Tm (- An AI prompt and use record containing the prompts used for the solution, relevant) Tj ET
+BT 0.12 0.16 0.14 rg /F1 10 Tf 1 0 0 1 52 714 Tm (response excerpts or summaries, how suggestions were accepted, edited, or rejected, and the) Tj ET
+BT 0.12 0.16 0.14 rg /F1 10 Tf 1 0 0 1 52 700 Tm (files or decisions they informed. Include verification evidence for AI-assisted changes.) Tj ET
+BT 0.12 0.16 0.14 rg /F1 10 Tf 1 0 0 1 52 686 Tm (- Brief setup and run instructions, including the commands used to execute the tests.) Tj ET
+BT 0.12 0.16 0.14 rg /F1 10 Tf 1 0 0 1 52 672 Tm (- A short note describing assumptions and the booking invariant.) Tj ET
+BT 0.12 0.16 0.14 rg /F1 10 Tf 1 0 0 1 52 658 Tm (- A concise summary of limitations or follow-up risks discovered within scope.) Tj ET
+BT 0.19 0.36 0.28 rg /F2 14 Tf 1 0 0 1 52 637 Tm (Candidate Expectations) Tj ET
+BT 0.12 0.16 0.14 rg /F1 10 Tf 1 0 0 1 52 610 Tm (- Start by understanding the supplied project and its existing interfaces, persistence, and) Tj ET
+BT 0.12 0.16 0.14 rg /F1 10 Tf 1 0 0 1 52 596 Tm (test conventions. If no starter is supplied, use the minimal service or CLI fallback; do not) Tj ET
+BT 0.12 0.16 0.14 rg /F1 10 Tf 1 0 0 1 52 582 Tm (build a frontend.) Tj ET
+BT 0.12 0.16 0.14 rg /F1 10 Tf 1 0 0 1 52 568 Tm (- Use UTC for appointment timestamps and state any assumptions that affect behavior.) Tj ET
+BT 0.12 0.16 0.14 rg /F1 10 Tf 1 0 0 1 52 554 Tm (- Use AI for at least one engineering activity, but independently review and verify any) Tj ET
+BT 0.12 0.16 0.14 rg /F1 10 Tf 1 0 0 1 52 540 Tm (AI-generated suggestion before relying on it. Be candid about what AI contributed and what) Tj ET
+BT 0.12 0.16 0.14 rg /F1 10 Tf 1 0 0 1 52 526 Tm (you changed or rejected.) Tj ET
+BT 0.12 0.16 0.14 rg /F1 10 Tf 1 0 0 1 52 512 Tm (- Do not include credentials, secrets, or unnecessary sensitive data in prompts or submitted) Tj ET
+BT 0.12 0.16 0.14 rg /F1 10 Tf 1 0 0 1 52 498 Tm (prompt records.) Tj ET
+BT 0.12 0.16 0.14 rg /F1 10 Tf 1 0 0 1 52 484 Tm (- Prioritize correctness of the booking invariant, focused tests, understandable changes,) Tj ET
+BT 0.12 0.16 0.14 rg /F1 10 Tf 1 0 0 1 52 470 Tm (and evidence of independent review over feature count or extra infrastructure.) Tj ET
+BT 0.12 0.16 0.14 rg /F1 10 Tf 1 0 0 1 52 456 Tm (- Submit the implementation and all listed deliverables together so the work can be run and) Tj ET
+BT 0.12 0.16 0.14 rg /F1 10 Tf 1 0 0 1 52 442 Tm (reviewed.) Tj ET
+BT 0.19 0.36 0.28 rg /F2 14 Tf 1 0 0 1 52 421 Tm (Suggested Timebox) Tj ET
+BT 0.12 0.16 0.14 rg /F1 10 Tf 1 0 0 1 52 394 Tm (Suggested effort: 7---8 hours. Focus the time on the scoped feature, its tests, the design) Tj ET
+BT 0.12 0.16 0.14 rg /F1 10 Tf 1 0 0 1 52 380 Tm (specification, and a clear record of AI use and verification.) Tj ET
+endstream
+endobj
+xref
+0 9
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000123 00000 n 
+0000000220 00000 n 
+0000000322 00000 n 
+0000000458 00000 n 
+0000005592 00000 n 
+0000005728 00000 n 
+trailer
+<< /Size 9 /Root 1 0 R >>
+startxref
+8782
+%%EOF

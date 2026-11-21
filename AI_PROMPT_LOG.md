@@ -669,7 +669,7 @@ Legend: **Accepted** = used as given, **Edited** = used with changes, **Rejected
 - **§14 Layout:** added both demo transcripts and all three test classes, the actual `pom.xml` contents, and the REPL command without `-Dexec.mainClass`.
 - **§17 Limitations:** expanded the single-lock bullet with the reason per-provider locks weren't used. Added the CLI blank-argument note.
 
-**Decision:** _(user to fill: accepted / edited / rejected)_
+**Decision:** Accepted_
 
 **Verification:** Docs-only change; no code was touched. P5 code waits for the user's go-ahead.
 
@@ -692,7 +692,7 @@ Legend: **Accepted** = used as given, **Edited** = used with changes, **Rejected
   - `concurrentOverlappingBookingsForOneProviderLetExactlyOneSucceed`: thread *i* books `dr-smith` for `10:00 + i min` to `11:00 + i min`, so every pair overlaps. A ready latch and a go latch release all threads together. Each round asserts exactly 1 `Booked`, all others `Rejected(CONFLICT)`, and 1 stored appointment. A thread exception surfaces through `Future.get` and fails the test.
   - `concurrentCancelsOfOneAppointmentLetExactlyOneSucceed`: **not in the agreed test list** (Entry 26 item 7 covered only `book`). It was added because Decision 3 locks `cancel` to close the double-cancel race, and nothing else tests that. 50 threads cancel one appointment; each round asserts exactly 1 `CANCELLED` and all others `ALREADY_CANCELLED`. Flagged to the user after it was written; can be removed if not wanted.
 
-**Decision:** _(user to fill: accepted / edited / rejected, including whether to keep the cancel concurrency test)_
+**Decision:** Accepted, and keep the cancel concurrency test
 
 **Verification:**
 - `mvn clean test` → `BookingServiceTest` 19, `BookingServiceConcurrencyTest` 2 (0.44 s), `InMemoryAppointmentStoreTest` 5. In total, `Tests run: 26, Failures: 0, Errors: 0, Skipped: 0`, `BUILD SUCCESS`.
@@ -710,3 +710,41 @@ Legend: **Accepted** = used as given, **Edited** = used with changes, **Rejected
   - This matches Claude Code's scratch-copy result (bookings `<50>` every run; cancels `<2>`, and `<3>` here, since cancel race timing varies). The edit is to be reverted with `git checkout src/main/java/booking/BookingService.java` (the committed version has the locks).
 
 **P5 gate:** met. The tests pass with the lock, and fail when the lock is removed, checked both by Claude Code (scratch copy) and by the user (real code).
+
+---
+
+### Entry 29: P6 plan, then first P6 changes
+
+**Prompt (plan):**
+> let's just keep the cancel concurrency test. last phase - tightining of docs and compilation of deliverables. don't make any changes, first just tell me what is to be done here?
+
+**Response summary (plan, no changes made):**
+- Checked the repo read-only: working tree clean, locks restored and committed (`bacc589`), Entries 27/28 decisions blank, no README, no PDF found.
+- Proposed P6 work in six parts:
+  1. Close out P5 bookkeeping (log decisions; DESIGN status/§8/§12/§14).
+  2. Stretch tests: a 6-case parameterized overlap test, plus an optional mutation check.
+  3. A new `README.md`.
+  4. Finish DESIGN §17, the status line and §13.
+  5. A final AI-log pass (a P6 entry, an optional summary table, no blanks left).
+  6. Final verification: `mvn clean test`, a REPL run, a deliverables check.
+- Asked five questions: the PDF location, stretch tests, an `evidence/` folder, the optional P1 rename, the log summary table.
+
+**User decisions:**
+- Keep the cancel concurrency test (closes Entry 28's open question).
+- The problem statement PDF is now in the repo root (`GOPAL GUPTA_AI_Assessment.pdf`).
+- **No stretch tests:** "Don't need the stretch tests, already have enough". Plan item 2 is **rejected**.
+- Move the text files into `evidence/`.
+- Not answered yet: the P1 test rename, the log summary table.
+
+**Prompt (changes):**
+> note: i have added the problem statement doc in the root of the folder which i earlier said i would put but forgot. Don't need the stretch tests, already have enough. Move the text files to evidence. do this much
+
+**Response summary (changes):**
+- `git mv` of `demo-transcript.txt`, `demo_transcript_manual.txt` and `concurrency-no-lock-failure.txt` into `evidence/`. Git records them as renames, so history is kept. The file names are unchanged.
+- `DESIGN.md`: the §11 transcript pointers now use `evidence/…`. The §14 layout now shows the PDF and the `evidence/` folder with all three files, including `concurrency-no-lock-failure.txt`, which was missing before.
+- Earlier log entries (23, 27, 28) still name the files at the root. They are left as they were, because they record the state at that time; this entry records the move.
+- Nothing else was changed, per "do this much". The PDF was not read or modified.
+
+**Decision:** _(user to fill)_
+
+**Verification:** `git status` shows `R` (rename) for all three files into `evidence/`. A grep shows no remaining root-path references in `DESIGN.md`.
