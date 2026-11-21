@@ -1,6 +1,6 @@
 # AI Prompt and Use Record
 
-Project: Appointment B, conflict-safe booking and cancellation
+Project: Appointment Booking, conflict-safe booking and cancellation
 Tools: claude.ai (design phase), Claude Code in IntelliJ (build phase)
 
 Legend: **Accepted** = used as given, **Edited** = used with changes, **Rejected** = not used.

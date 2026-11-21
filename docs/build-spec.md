@@ -12,7 +12,7 @@ Build tools: Java 21, Maven, JUnit 5, IntelliJ, Claude Code
 
 ## 1. Context and Purpose
 
-This project is my submission for a hiring org's **AI-Assisted Engineering Assessment (Appointment B)**.
+This project is my submission for a hiring org's **AI-Assisted Engineering Assessment: Appointment Booking**.
 
 The assessment checks three things:
 1. **Task decomposition:** breaking a bounded feature into clear pieces.

@@ -1,6 +1,6 @@
 # Design: Conflict-Safe Appointment Booking
 
-Author: Gopal Gupta · Java 21, Maven, JUnit 5 · Assessment: *AI-Assisted Engineering Assessment, Appointment B*
+Author: Gopal Gupta · Java 21, Maven, JUnit 5 · Assessment: *AI-Assisted Engineering Assessment: Appointment Booking*
 
 This is the short design spec for reviewers. Two folders hold the supporting material:
 

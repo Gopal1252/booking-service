@@ -1,6 +1,6 @@
 # Conflict-Safe Appointment Booking
 
-Submission for the **AI-Assisted Engineering Assessment, Appointment B**. It provides conflict-safe booking and cancellation as a small Java service with a CLI and an in-memory store.
+Submission for the **AI-Assisted Engineering Assessment: Appointment Booking**. It provides conflict-safe booking and cancellation as a small Java service with a CLI and an in-memory store.
 
 ## Requirements
 
