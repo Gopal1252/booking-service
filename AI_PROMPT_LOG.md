@@ -560,3 +560,147 @@ Legend: **Accepted** = used as given, **Edited** = used with changes, **Rejected
 - User observation from the manual demo: an empty id for `cancel` never reaches the service. The CLI splits on whitespace, so `cancel` or `cancel   ` has 1 word and prints the usage line. `CancelResult.INVALID_INPUT` (and blank-field `book` rejections) are unreachable through the CLI. They still matter at the service boundary (AC5 applies to any caller), and the service tests cover them directly. The user decided no change is needed.
 
 **P4 gate:** met. The manual demo works (book, conflict, cancel, rebook, list), and transcripts are saved: `demo-transcript.txt` (scripted) plus the user's own manual one.
+
+---
+
+### Entry 24: What is left after P4
+
+**Prompt:**
+> now, concurrency is the only thing we left before tightning the docs and preparing any remaining deliverables, right?
+
+**Response summary:**
+- Confirmed: P5 (concurrency) is the last feature work, then P6 (hardening and docs).
+- P6 items:
+  - stretch tests not yet done (partial overlap, containment, identical interval, reverse adjacency)
+  - README (setup/test/run, assumptions, invariant)
+  - finish DESIGN §17 limitations
+  - final log pass
+- Loose ends listed:
+  - settle the DESIGN §9 open-decision text
+  - the optional P1 test rename
+  - the assessment PDF is not in the repo
+  - where the user's manual transcript lives
+  - `list` shows booking order, not start time
+- Checked against the deliverables from Entry 1: all are covered by P5/P6.
+
+**Decision:** Accepted
+
+---
+
+### Entry 25: Explain the concurrency plan in DESIGN §12
+
+**Prompt:**
+> okay, let's discuss more about concurrency. what does the design doc say, explain to me
+
+**Response summary:**
+- Restated §12: a check-then-act risk; one `ReentrantLock` or `synchronized` around `book` steps 2 to 4 and all of `cancel`; validation outside; per-provider locks as an optional upgrade; an N-thread test with `ExecutorService` + `CountDownLatch`; and the gate that it must fail without the lock.
+- Walked through the race in our code (two threads both pass the overlap check before either saves).
+- Raised a point §12 didn't spell out: the store's `HashMap` / `ArrayList` are not thread-safe. Concurrent writes can lose ids or throw `ConcurrentModificationException`, and writes may not be visible across threads, even for non-conflicting bookings. The single service lock also fixes this, so the store can stay dumb.
+- Noted the same race in `cancel` (both callers get `CANCELLED`).
+- Explained why validation can run outside the lock (method-local, immutable data).
+- Asked for four decisions, each with a recommendation:
+  1. `ReentrantLock` vs `synchronized` (recommended `ReentrantLock`; not a `synchronized` method).
+  2. Lock `listForProvider` too (recommended yes).
+  3. A repeated stress test (about 50 threads × about 200 rounds).
+  4. Single lock vs per-provider locks (recommended a single lock, plus a limitation note).
+
+**Decision:** Accepted
+
+---
+
+### Entry 26: Concurrency decisions; premature edit rejected
+
+**Prompt:**
+> okay, got it. My choices and resoning:1) let's just use reentrantlocks here. 2) make listForProvider locked too. 3) for testing, i think we can use executorService to make enough threads to show that it breaks when locks not used. 4) I am confused about the per-provider locks. they make sense because without them, two threads booking on separate providers would be synchronized, isn't it? I do get the fact that we would need to make the maps inside the memmoryStore concurrent as well and the final method would also need to get the providerId and the corresponding lock. so a little confused about that. I think we can go with your suggested idea - let's keep it simple, it keeps things simple and correct and we can put this as a known limitation. what do you say?
+
+**Response summary:**
+- Confirmed the user's reading of per-provider locks: with one lock, bookings for different providers wait for each other although they can't conflict. That is a throughput cost only.
+- Per-provider locks would need a thread-safe store, plus a look-up-provider-then-re-check step in `cancel`. Agreed to keep one lock, with a limitation note.
+- Claude Code then **started editing `BookingService.java`** (adding the lock to `book`, `cancel`, `listForProvider`) without first restating the final decisions and getting confirmation.
+
+**Decision:** **Rejected** (the code edits). The user rejected the edit: "don;t make the chages yet,s till discussing". No change was written; `BookingService.java` is unchanged.
+
+**Follow-up prompt:**
+> give me the final decisions with the concurrency first. Then only make the changes
+
+**Follow-up response summary:** Listed the final P5 decisions, with no edits:
+1. One `private final ReentrantLock`, always `lock(); try { … } finally { unlock(); }`.
+2. `book`: validation outside; overlap check + create + save inside.
+3. `cancel`: blank check outside; find + status checks + save inside.
+4. `listForProvider` locked; `findByProvider` returns a snapshot.
+5. The store stays plain collections, guarded by the service lock.
+6. No per-provider locks (limitation in §17).
+7. A new `BookingServiceConcurrencyTest`: 50-thread pool; fresh service per round; thread *i* books `10:00+i min` to `11:00+i min` (all pairwise overlapping); a ready latch and a go latch; each round must give exactly 1 `Booked`, 49 `CONFLICT` and 1 stored appointment, with any exception failing the test; about 200 rounds.
+8. Proof: remove the lock in a throwaway copy and confirm the test fails.
+9. Update DESIGN §12/§17 and this log.
+
+**Decision:** Accepted, pending implementation. The user asked for the docs to be updated first (Entry 27).
+
+**Lesson noted:** during a design discussion, restate the final decisions and wait for an explicit go-ahead before editing code.
+
+---
+
+### Entry 27: Bring DESIGN.md up to date before P5 code
+
+**Prompt:**
+> okay, first make the changes to the AI logs and design doc with any missing updates.
+
+**Response summary:** Docs only, no code changes. `DESIGN.md` updates:
+- **Header status:** now "In build. P0 to P4 done; P5 decided, not yet implemented".
+- **§6 Threading:** "Phase 1/Phase 2" → "single-threaded through P4, P5 adds one lock".
+- **§8 Classes:** added `InMemoryAppointmentStoreTest` and `BookingServiceConcurrencyTest` (P5). `BookingServiceTest` now notes T1 to T7 + blank-id cancel.
+- **§9 Store:**
+  - The open decision is marked **Decided (P3)**: keep ids in `byProvider`, filter on ACTIVE. Removing them is recorded as the rejected alternative.
+  - `save` row updated to "index only on first save".
+  - Added the re-save-keeps-`providerId` assumption.
+  - Added a note that the store isn't thread-safe and relies on the service lock.
+- **§10.1:** "Phase 2" → "P5". The JDK `Instant.parse` note is changed from "to verify" to **verified in P2**, with the jshell result and the T7 offset case.
+- **§11 CLI:**
+  - The sample output now matches the built REPL (full ids, full timestamps, `bye`), with pointers to `demo-transcript.txt` and `demo_transcript_manual.txt`.
+  - Added the user's finding that blank args become CLI usage errors, so `INVALID_INPUT` is reachable only through the service API.
+  - Noted that `list` is in booking order.
+- **§12 Concurrency:** rewritten as "Concurrency (P5)" with three risks (book race with a diagram, cancel race, non-thread-safe store), the decision table from Entry 26 with reasons, the one-lock vs per-provider trade-off, and the concrete test design and gate.
+- **§13 Tests:**
+  - T7 row expanded to the 9 cases actually built. Added the extra blank-id cancel row.
+  - Recorded what's done and that three stretch cases were pulled into T7.
+  - Moved the concurrency test out of stretch, since the P5 gate requires it.
+  - Listed the remaining stretch tests for P6.
+  - Listed the four mutation checks done so far.
+- **§14 Layout:** added both demo transcripts and all three test classes, the actual `pom.xml` contents, and the REPL command without `-Dexec.mainClass`.
+- **§17 Limitations:** expanded the single-lock bullet with the reason per-provider locks weren't used. Added the CLI blank-argument note.
+
+**Decision:** _(user to fill: accepted / edited / rejected)_
+
+**Verification:** Docs-only change; no code was touched. P5 code waits for the user's go-ahead.
+
+---
+
+### Entry 28: P5 Concurrency
+
+**Prompt:**
+> Okay, now make the changes to for concurrency handling
+
+**Response summary:** Implemented the decisions from Entry 26 / DESIGN §12.
+- `BookingService`: added one `private final ReentrantLock lock`. Every use is `lock.lock(); try { … } finally { lock.unlock(); }`.
+  - `book`: validation unchanged and outside the lock. The overlap check, create and `save` are inside.
+  - `cancel`: the blank-id check is outside. `findById`, the NOT_FOUND / ALREADY_CANCELLED checks and `save(cancel())` are inside.
+  - `listForProvider`: `store.findByProvider` runs inside the lock. It returns a snapshot (`toList()`).
+  - Class and field Javadoc updated (thread-safety note; the lock serializes every provider, see §12).
+  - The user's own inline comments were kept.
+- `InMemoryAppointmentStore`: unchanged (Decision 5).
+- New `BookingServiceConcurrencyTest`, with a fixed pool of 50 threads and a fresh service per round, 200 rounds per test:
+  - `concurrentOverlappingBookingsForOneProviderLetExactlyOneSucceed`: thread *i* books `dr-smith` for `10:00 + i min` to `11:00 + i min`, so every pair overlaps. A ready latch and a go latch release all threads together. Each round asserts exactly 1 `Booked`, all others `Rejected(CONFLICT)`, and 1 stored appointment. A thread exception surfaces through `Future.get` and fails the test.
+  - `concurrentCancelsOfOneAppointmentLetExactlyOneSucceed`: **not in the agreed test list** (Entry 26 item 7 covered only `book`). It was added because Decision 3 locks `cancel` to close the double-cancel race, and nothing else tests that. 50 threads cancel one appointment; each round asserts exactly 1 `CANCELLED` and all others `ALREADY_CANCELLED`. Flagged to the user after it was written; can be removed if not wanted.
+
+**Decision:** _(user to fill: accepted / edited / rejected, including whether to keep the cancel concurrency test)_
+
+**Verification:**
+- `mvn clean test` → `BookingServiceTest` 19, `BookingServiceConcurrencyTest` 2 (0.44 s), `InMemoryAppointmentStoreTest` 5. In total, `Tests run: 26, Failures: 0, Errors: 0, Skipped: 0`, `BUILD SUCCESS`.
+- With the lock, the concurrency tests were run 5 more times (`mvn -q test -Dtest=BookingServiceConcurrencyTest`): 5/5 pass.
+- **Gate: fails without the lock.** On a throwaway copy in the scratchpad (not the repo), all 6 `lock()`/`unlock()` calls were commented out, and the concurrency tests run 3 times:
+  - Booking test: failed in round 1 on all 3 runs, with `expected exactly one booking to win ==> expected: <1> but was: <50>`. Every thread booked an overlapping slot.
+  - Cancel test: failed on all 3 runs (round 1, 13, 1), with `expected exactly one cancel to win ==> expected: <1> but was: <2>`.
+  - `Tests run: 2, Failures: 2` each time.
+- User review: _(pending)_
+
+**P5 gate:** the tests pass with the lock and fail when it is removed. Waiting on user review.

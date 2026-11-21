@@ -9,11 +9,13 @@ import java.time.format.DateTimeParseException;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * Books appointments and enforces the booking invariant:
  * for any provider, no two ACTIVE appointments overlap.
  * Intervals are half-open [start, end), so adjacent appointments do not overlap.
+ * Thread-safe: validation runs without the lock; every store access runs under it.
  */
 public class BookingService {
 
@@ -21,6 +23,12 @@ public class BookingService {
             "timestamps must be ISO-8601 UTC, e.g. 2026-11-20T10:00:00Z";
 
     private final InMemoryAppointmentStore store;
+
+    /**
+     * One lock for all store access (book, cancel, list). It makes check-then-save atomic, and it also
+     * protects the store's non-thread-safe HashMap/ArrayList. It serializes every provider; see DESIGN §12.
+     */
+    private final ReentrantLock lock = new ReentrantLock();
 
     public BookingService(InMemoryAppointmentStore store) {
         this.store = store;
@@ -49,20 +57,25 @@ public class BookingService {
             return invalid("end must be after start");
         }
 
-        // 2-4. Overlap check, create, save. Kept together so a lock can wrap them in P5.
-        //this returns a conflicted appointment
-        Optional<Appointment> conflict = store.findByProvider(providerId).stream()
-                .filter(existing -> existing.status() == Status.ACTIVE)
-                .filter(existing -> overlaps(existing, from, to))
-                .findFirst();
-        if (conflict.isPresent()) {
-            return new Rejected(Reason.CONFLICT, "overlaps appointment " + conflict.get().id());
-        }
+        // 2-4. Overlap check, create, save, under the lock so no other thread can save in between.
+        lock.lock();
+        try {
+            //this returns a conflicted appointment
+            Optional<Appointment> conflict = store.findByProvider(providerId).stream()
+                    .filter(existing -> existing.status() == Status.ACTIVE)
+                    .filter(existing -> overlaps(existing, from, to))
+                    .findFirst();
+            if (conflict.isPresent()) {
+                return new Rejected(Reason.CONFLICT, "overlaps appointment " + conflict.get().id());
+            }
 
-        Appointment appointment =
-                new Appointment(UUID.randomUUID().toString(), providerId, from, to, Status.ACTIVE);
-        store.save(appointment);
-        return new Booked(appointment);
+            Appointment appointment =
+                    new Appointment(UUID.randomUUID().toString(), providerId, from, to, Status.ACTIVE);
+            store.save(appointment);
+            return new Booked(appointment);
+        } finally {
+            lock.unlock();
+        }
     }
 
     /**
@@ -73,21 +86,35 @@ public class BookingService {
         if (isBlank(appointmentId)) {
             return CancelResult.INVALID_INPUT;
         }
-        Optional<Appointment> found = store.findById(appointmentId);
-        if (found.isEmpty()) {
-            return CancelResult.NOT_FOUND;
+        // Look-up, status check and save under the lock, so two concurrent cancels can't both succeed.
+        lock.lock();
+        try {
+            Optional<Appointment> found = store.findById(appointmentId);
+            if (found.isEmpty()) {
+                return CancelResult.NOT_FOUND;
+            }
+            Appointment appointment = found.get();
+            if (appointment.status() == Status.CANCELLED) {
+                return CancelResult.ALREADY_CANCELLED;
+            }
+            store.save(appointment.cancel());
+            return CancelResult.CANCELLED;
+        } finally {
+            lock.unlock();
         }
-        Appointment appointment = found.get();
-        if (appointment.status() == Status.CANCELLED) {
-            return CancelResult.ALREADY_CANCELLED;
-        }
-        store.save(appointment.cancel());
-        return CancelResult.CANCELLED;
     }
 
-    /** All appointments for the provider, ACTIVE and CANCELLED. Read-only helper for the REPL and debugging. */
+    /**
+     * All appointments for the provider, ACTIVE and CANCELLED. Read-only helper for the REPL and debugging.
+     * Locked so it never reads the store while a booking is writing to it; the returned list is a snapshot.
+     */
     public List<Appointment> listForProvider(String providerId) {
-        return store.findByProvider(providerId);
+        lock.lock();
+        try {
+            return store.findByProvider(providerId);
+        } finally {
+            lock.unlock();
+        }
     }
 
     /** Half-open overlap: [a.start, a.end) and [start, end) overlap iff a.start < end && start < a.end. */
