@@ -701,6 +701,12 @@ Legend: **Accepted** = used as given, **Edited** = used with changes, **Rejected
   - Booking test: failed in round 1 on all 3 runs, with `expected exactly one booking to win ==> expected: <1> but was: <50>`. Every thread booked an overlapping slot.
   - Cancel test: failed on all 3 runs (round 1, 13, 1), with `expected exactly one cancel to win ==> expected: <1> but was: <2>`.
   - `Tests run: 2, Failures: 2` each time.
-- User review: _(pending)_
+- User review: the user read and understood both concurrency tests, and added their own comments to `BookingServiceConcurrencyTest`. At the user's request, the full suite was re-run with the locks present (all 6 `lock()`/`unlock()` calls checked first): `Tests run: 26, Failures: 0, Errors: 0, Skipped: 0`, `BUILD SUCCESS`. The user then committed.
+- **Independent verification by the user:** after committing, the user commented out the 6 `lock()`/`unlock()` lines in the real `BookingService.java` (in IntelliJ) and ran `BookingServiceConcurrencyTest`:
+  - `concurrentOverlappingBookingsForOneProviderLetExactlyOneSucceed:56 round 1: expected exactly one booking to win ==> expected: <1> but was: <50>`
+  - `concurrentCancelsOfOneAppointmentLetExactlyOneSucceed:132 round 1: expected exactly one cancel to win ==> expected: <1> but was: <3>`
+  - `Tests run: 2, Failures: 2, Errors: 0, Skipped: 0`
+  - The full output is saved at the user's request in `concurrency-no-lock-failure.txt`, with a short context header and the output unedited.
+  - This matches Claude Code's scratch-copy result (bookings `<50>` every run; cancels `<2>`, and `<3>` here, since cancel race timing varies). The edit is to be reverted with `git checkout src/main/java/booking/BookingService.java` (the committed version has the locks).
 
-**P5 gate:** the tests pass with the lock and fail when it is removed. Waiting on user review.
+**P5 gate:** met. The tests pass with the lock, and fail when the lock is removed, checked both by Claude Code (scratch copy) and by the user (real code).
