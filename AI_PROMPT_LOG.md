@@ -5,6 +5,11 @@ Tools: claude.ai (design phase), Claude Code in IntelliJ (build phase)
 
 Legend: **Accepted** = used as given, **Edited** = used with changes, **Rejected** = not used.
 
+**Note on file references:** until Entry 30, the working spec was `DESIGN.md` at the repo root. In Entry 30 it moved to **`docs/build-spec.md`**, and a new short `DESIGN.md` was written for reviewers. So "DESIGN §N" in Entries 1 to 29 means a section of `docs/build-spec.md`. Similarly, the evidence files named in earlier entries were moved to `evidence/` (Entry 29) and renamed (Entry 31):
+- `demo-transcript.txt` → `evidence/cli-demo-scripted.txt`
+- `demo_transcript_manual.txt` → `evidence/cli-demo-manual.txt`
+- `concurrency-no-lock-failure.txt` → `evidence/concurrency-tests-fail-without-lock.txt`
+
 ---
 
 ## Phase 1: Design (claude.ai)
@@ -745,6 +750,93 @@ Legend: **Accepted** = used as given, **Edited** = used with changes, **Rejected
 - Earlier log entries (23, 27, 28) still name the files at the root. They are left as they were, because they record the state at that time; this entry records the move.
 - Nothing else was changed, per "do this much". The PDF was not read or modified.
 
-**Decision:** _(user to fill)_
+**Decision:** Accepted
 
 **Verification:** `git status` shows `R` (rename) for all three files into `evidence/`. A grep shows no remaining root-path references in `DESIGN.md`.
+
+---
+
+### Entry 30: Split docs into a reviewer DESIGN.md + README, archive the build spec
+
+**Prompt (opinion):**
+> next i think i will keep a readme.md - for most of the things you listed. i am confused if i should add a separate design doc other than the one i made with claude.ai, because it has become too big, i can put the existing one in a separate folder with appropriate name "design_doc_for_claude_ai" or something better. then, the design doc for the reviewers will only contain the needed portion/summarised version -1) proposed/implemented service boundary 2) relevant data/API design 3) booking invariant 4) cncurrency approach 5) persistence approach (CLI) 6) key assumptions or tradeoffs. and then the README.md can contain the following: 1) sinlge line - assessment 2) requirements - JDK 21, Maven 3) setup and run instructions with Commands to run and test 4) A short note describing assumptions and the booking invariant 5) A concise summary of limitations or follow-up risks discovered within scope and any other useful thing. just want to keep this stuff concise for reviewers in the way they want. don't make any changes, tell your opinion
+
+**Response summary (opinion, no changes):**
+- Read the assessment PDF (read-only). The user's split matches its deliverables list almost word for word, and the PDF asks that the design spec be "proportionate to this bounded feature".
+- Recommendations:
+  1. Archive the old spec rather than trimming it, since its phase plan and checks are evidence of task decomposition and review.
+  2. Name it `docs/build-spec.md`, not "design_doc_for_claude_ai": it was written *with* claude.ai *for* Claude Code.
+  3. Add a note in this log that "DESIGN §N" now means the build spec.
+  4. Correction to item 5: persistence means the in-memory store; the CLI belongs under the service boundary.
+  5. Keep the README short and link to `DESIGN.md` instead of duplicating it.
+  6. README extras: a file map, a verification summary, and a candid "How AI was used" section (the PDF asks to be candid).
+  7. Optionally move the PDF to `docs/assessment.pdf`, since its name contained the full name.
+
+**Prompt (changes):**
+> okay, seems good, mention in the readme/summariesed design doc clearly about the docs folder - build-spec and what the evidence folder is for. make the changes
+
+**Response summary (changes):**
+- `git mv DESIGN.md docs/build-spec.md` (history kept). The PDF was moved to `docs/assessment.pdf` and staged as a rename.
+- `docs/build-spec.md`:
+  - New header note ("Archived working spec…", with a pointer to `../DESIGN.md`, and §-references in this log mean this file). Status set to complete.
+  - §8 and §12 now cover the cancel concurrency test and its result.
+  - §13 records the stretch tests as not built, by the user's decision.
+  - §14 layout updated (README, the new DESIGN.md, `docs/`).
+- New `DESIGN.md` (reviewer spec), with an intro explaining `docs/` (build spec + PDF) and `evidence/`, then the user's six sections:
+  1. Service boundary.
+  2. Data and API design.
+  3. Booking invariant.
+  4. Persistence approach (the in-memory store; the CLI is placed under the service boundary).
+  5. Concurrency approach.
+  6. Key assumptions and trade-offs.
+- New `README.md`:
+  - The one-line purpose, requirements, setup/run/test commands with a CLI command table and a sample, assumptions and the invariant, limitations and follow-up risks.
+  - Plus "How it was verified" (test classes → ACs, mutation checks, no-lock failure, demos), "How AI was used", and a repository layout that explains `docs/` and `evidence/`.
+  - A follow-up risk not stated before: the in-process lock does not carry over to a database; there the invariant would need a transaction or exclusion constraint.
+- This log: the file-reference note at the top. Entry 29's decision marked Accepted. Earlier entries are left as written.
+
+**Decision:** Edited
+
+**Verification:**
+- `mvn clean test` (README command) → `Tests run: 26, Failures: 0, Errors: 0, Skipped: 0`, `BUILD SUCCESS`.
+- `mvn -q compile exec:java` (README command), with piped `book` / overlapping `book` / `exit` → `BOOKED …`, `REJECTED  CONFLICT: overlaps appointment …`, `bye`. The README sample output matches the real output.
+- `git status` shows renames for `DESIGN.md → docs/build-spec.md` and the PDF `→ docs/assessment.pdf`.
+
+---
+
+### Entry 31: README fixes: dependencies, evidence names and descriptions, own-review examples, short layout
+
+**Prompt:**
+> okay, a few changes suggested:1) why havent you listed junit, etc in the requirements, 2) i would like you to clearly mention what each file in the evidence folder is for - probably also change the names to better understandble file names.also, one of the things i pointed early out was the fact that you had forgotten that records won't allow you to directly change the status since enums are immutable inside the immutable records 3) in the repository layout - it is difficult to read since the descriptions are too big, keep them short. do this, one more change has to be added
+
+**Response summary:**
+1. **Requirements:** the README listed only what must be installed (JDK, Maven) and left out the Maven-fetched dependencies. It now has a table of what Maven downloads on the first build: JUnit Jupiter 5.11.4 (test scope), `maven-compiler-plugin` 3.13.0, `maven-surefire-plugin` 3.5.2, `exec-maven-plugin` 3.5.0, with what each is for. It also notes that the app has no runtime dependencies beyond the JDK.
+2. **Evidence files:**
+   - Renamed with `git mv`: `demo-transcript.txt` → `cli-demo-scripted.txt`, `demo_transcript_manual.txt` → `cli-demo-manual.txt`, `concurrency-no-lock-failure.txt` → `concurrency-tests-fail-without-lock.txt`. File contents are unchanged, including the user's manual transcript.
+   - The README now has an "Evidence folder" table (file / what it shows / how it was produced). `DESIGN.md`'s intro lists each file in one line.
+   - References updated in `DESIGN.md` and `docs/build-spec.md`. The note at the top of this log maps the old names to the new ones; earlier entries are left as written.
+3. **Record immutability:** added to the README's "How AI was used" as an example of the user's own review, with Entries 4–5. Precise wording used: record *fields* are final, so the status field can't be reassigned (the enum itself isn't the issue). The fix was `cancel()` returning a new record. The user's other design-phase catch was added too: the missing provider index (Entry 4).
+4. **Repository layout:** descriptions shortened to a few words each. `evidence/` points to the "Evidence folder" table instead of repeating it.
+
+**Decision:** Accepted
+
+**Verification:** `git status` shows `R` for the three evidence renames. A grep of `README.md`, `DESIGN.md` and `docs/build-spec.md` finds no old evidence filenames.
+
+**Pending:** the user said one more change is to be added.
+
+---
+
+### Entry 32: Save the user's final full test run as evidence
+
+**Prompt:**
+> okay. so i also ran the tests myself, all passed, thinking of storing them in evidence as an appropriate txt file: (pasted `mvn test` output, ending `Tests run: 26, Failures: 0, Errors: 0, Skipped: 0`, `BUILD SUCCESS`, `Finished at: 2026-11-21T17:06:40+05:30`)
+
+**Response summary:**
+- Saved as `evidence/all-tests-pass.txt`: a short header (what it is, who ran it and when, a pointer to `concurrency-tests-fail-without-lock.txt` for contrast), then the output unedited.
+- `README.md`: added a row to the "Evidence folder" table and a "Full suite" bullet under "How it was verified".
+- `DESIGN.md`: added the file to the `evidence/` list in the intro.
+- `docs/build-spec.md`: added the file to the §14 layout.
+
+**Decision:** Accepted
+
+**Verification (by the user):** `mvn test` on the final code → `BookingServiceTest` 19, `BookingServiceConcurrencyTest` 2, `InMemoryAppointmentStoreTest` 5. In total, `Tests run: 26, Failures: 0, Errors: 0, Skipped: 0`, `BUILD SUCCESS`.
